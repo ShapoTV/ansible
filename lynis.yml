@@ -3,7 +3,7 @@
   become: yes
   tasks:
   - name: Updating system
-    yum:
+    yum: # If you're using a Debian or Ubuntu server, replace yum by apt.
      update_cache=yes
      state=latest
 

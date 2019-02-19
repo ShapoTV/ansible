@@ -1,0 +1,24 @@
+- name: Setting up new server
+  hosts: servers # Put in hosts file IP addresses of your new webservers
+  become: yes
+  tasks:
+  - name: Updating system
+    yum: # If you're using a Debian or Ubuntu server, replace yum by apt.
+     update_cache=yes
+     state=latest
+
+# Genreate ssh key on your ansible computer before with the command "ssh_keygen".
+
+  - name: Generating ssh keys
+    command: scp ~./ssh/id_rsa.pub user@ip_host:./ssh/authorized_keys
+
+# Installing basic tools for webservers. This playbook can be modified if you don't need some packages in the following list.
+
+  - name: Installing common packages for new servers
+    yum: name={{ item }} state=latest
+    with_items:
+      - nano
+      - net-tools
+      - bind-utils
+      - dns-utils
+      - open-vm-tools

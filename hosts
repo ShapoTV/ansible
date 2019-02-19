@@ -1,0 +1,12 @@
+[webservers]
+# Replace by IP addresses or computer's hostnames
+node1
+node2
+node3
+node4
+
+[databases]
+node5
+node6
+node7
+node8
