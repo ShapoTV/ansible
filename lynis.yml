@@ -1,5 +1,5 @@
 - name: Lynis install and audit systems
-  hosts: hosts #Put here your own group of hosts
+  hosts: hosts # Put here your own group of hosts
   become: yes
   tasks:
   - name: Updating system
@@ -7,7 +7,7 @@
      update_cache=yes
      state=latest
 
-#Genreate ssh key on your ansible computer before with the command "ssh_keygen".
+# Genreate ssh key on your ansible computer before with the command "ssh_keygen".
 
   - name: Generating ssh keys
     command: scp ~./ssh/id_rsa.pub user@ip_host:./ssh/authorized_keys
@@ -21,7 +21,7 @@
 # The following steps is an extra if you want to get the Lynis report on a dedicated server
 
   - name: Rename Lynis log 
-    command: /var/log/lynis.log > /var/log/{{ ansible_hostname }}-lynis.log #"ansible_hostname" var rename the file from the inventory file
+    command: /var/log/lynis.log > /var/log/{{ ansible_hostname }}-lynis.log # "ansible_hostname" var rename the file from the inventory file
 
   - name: Rename Lynis report
     command: /var/log/lynis-report.dat > /var/log/{{ ansible_hostname }}-lynis-report.dat
@@ -29,8 +29,8 @@
   - name: Send Lynis log
     copy:
      src: /var/log/{{ ansible_hostname }}-lynis.log
-     dest: /etc/lynis/results #Lynis and results folders should be created on the dedicated server before executing this playbook
-     delegate_to: ip_dedicated_server #Put here the IP address of your server
+     dest: /etc/lynis/results # Lynis and results folders should be created on the dedicated server before executing this playbook
+     delegate_to: ip_dedicated_server # Put here the IP address of your server
 
   - name: Send Lynis report
     copy:
