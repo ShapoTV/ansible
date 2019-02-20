@@ -1,0 +1,82 @@
+- name: Setting up new webserver
+  hosts: webservers # Put in hosts file IP addresses of your new webservers
+  become: yes
+  tasks:
+  - name: Updating system
+    yum: # If you're using a Debian or Ubuntu server, replace yum by apt.
+     update_cache=yes
+     state=latest
+
+# Genreate ssh key on your ansible computer before with the command "ssh_keygen".
+
+  - name: Generating ssh keys
+    command: scp ~./ssh/id_rsa.pub user@ip_host:./ssh/authorized_keys
+
+# Installing basic tools for webservers. This playbook can be modified if you don't need some packages in the following list.
+
+  - name: Installing basic packages for webservers
+    yum: name={{ item }} state=latest
+    with_items:
+      - apache2
+      - httpd
+      - mariadb-server
+      - mariadb
+      - php
+      - php-mysql
+      - nano
+      - mod_ssl
+
+# Apache 2 configuration, don't forget to modify configuration files to use SSL certificates
+
+  - name: Enable mod_rewrite
+    apache2_module:
+      name: rewrite
+      state: present
+    notify:
+     - restart apache2
+
+  handlers:
+  - name: Restart apache2
+    service:
+    name: apache2
+    state: restarted
+
+# HTTPD configuration
+
+  - name: Ensure httpd is running
+    service:
+      name: httpd
+      state: started
+
+  - name: Open port 80 for http access
+    firewalld:
+      service: http
+      permanent: true
+      state: enabled
+
+  - name: Restart the firewalld service to load in the firewall changes
+    service:
+      name: firewalld
+      state: restarted
+
+# MariaDB configuration
+
+  - name: Ensure MariaDB is running
+    service:
+      name: mariadb
+      state: started
+
+  - name: Securing MariaDB
+    command: mysql_secure_installation
+
+  - name: Enable MariaDB during boot
+    service:
+      name: mariadb
+      state: enabled
+
+# PHP configuration
+
+  - name: Restarting HTTPD service
+    service:
+      name: httpd
+      state: restarted
