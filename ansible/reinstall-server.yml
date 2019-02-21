@@ -1,0 +1,63 @@
+- name: Reinstalling server
+  hosts: 192.168.1.X # Put in hosts file IP addresses of your new webservers
+  become: yes
+  tasks:
+  - name: Updating system
+    yum: # If you're using a Debian or Ubuntu server, replace yum by apt.
+     update_cache: yes
+     state: latest
+
+# Genreate ssh key on your ansible computer before with the command "ssh_keygen".
+
+  - name: Generating ssh keys
+    command: scp ~./ssh/id_rsa.pub user@ip_host:./ssh/authorized_keys
+
+  - name: Installing packages for server
+    yum: name={{ item }} state=latest
+    with_items:
+      - epel-release
+      - nginx
+      - createrepo
+      - yum-utils
+  
+  - name: Start nginx
+    command: systemctl start nginx && systemctl enable nginx && systemctl status nginx
+
+  - name: Open ports
+    command: firewall-cmd --zone=public --permanent --add-service=http && firewall-cmd --zone=public --permanent --add-service=https && firewall-cmd --reload
+
+  - name: Create necessary directories (yum repositories)
+    command: mkdir -p /var/www/html/repos/{base,centosplus,extras,updates}
+
+  - name: Synchronize CentOS YUM repositories to the local directories
+    command: reposync -g -l -d -m --repoid=base --newest-only --download-metadata --download_path=/var/www/html/repos/ && reposync -g -l -d -m --repoid=centosplus --newest-only --download-metadata --download_path=/var/www/html/repos/ && reposync -g -l -d -m --repoid=extras --newest-only --download-metadata --download_path=/var/www/html/repos/ && reposync -g -l -d -m --repoid=updates --newest-only --download-metadata --download_path=/var/www/html/repos/
+
+  - name: Create repodata for the local repositories
+    command: createrepo -g comps.xml /var/www/html/repos/base/ && createrepo -g comps.xml /var/www/html/repos/centosplus/ && createrepo -g comps.xml /var/www/html/repos/extras/ && createrepo -g comps.xml /var/www/html/repos/updates/
+
+  - name: Create a Nginx server block
+    copy:
+     content: server {
+        listen   80;
+        server_name  localrepo-centos.entreprise.corp;  #change  test.lab to your real domain 
+        root   /var/www/html/repos;
+        location / {
+                index  index.php index.html index.htm;
+                autoindex on; #enable listing of directory index
+        }
+}    dest: /etc/nginx/conf.d/repos.conf
+
+  - name: Create a cron job to synchronize and create repositories
+    copy:
+      content: #!/bin/bash
+##specify all local repositories in a single variable
+LOCAL_REPOS=”base centosplus extras updates”
+##a loop to update repos one at a time 
+for REPO in ${LOCAL_REPOS}; do
+reposync -g -l -d -m --repoid=$REPO --newest-only --download-metadata --download_path=/var/www/html/repos/
+createrepo -g comps.xml /var/www/html/repos/$REPO/  
+done
+      dest: /etc/cron.daily/update-localrepos
+
+  - name: Set appropriate permissions
+    command: chmod 755 /etc/cron.daily/update-localrepos

@@ -1,0 +1,29 @@
+- name: Setting up local repository
+  hosts: localrepo # Put in hosts file IP addresses of your new webservers
+  become: yes
+  tasks:
+  - name: Updating system
+    yum: # If you're using a Debian or Ubuntu server, replace yum by apt.
+     update_cache: yes
+     state: latest
+
+# Genreate ssh key on your ansible computer before with the command "ssh_keygen".
+
+  - name: Generating ssh keys
+    command: scp ~./ssh/id_rsa.pub user@ip_host:./ssh/authorized_keys
+
+# Begin install and configuration of the repository
+  - name: Install packages
+    yum:
+     name: createrepo
+     state: latest
+
+  - name: Creating RPMS folders
+    command: mkdir -p ~/repos/centos/7/x86_64/RPMS && mkdir ~/repos/centos/7/SPRMS
+
+  - name: Put RPMS files in correct folder
+    command: 
+
+  - name: Building metadata
+    command: cd ~/repos/centos/7/x86_64 && createrepo .
+    
